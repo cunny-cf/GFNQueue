@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GFN Queue</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #101010;
+            color: gold;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        table {
+            width: 80%;
+            /* Ensuring all tables are the same width */
+            margin: 20px auto;
+            /* border-collapse: collapse; */
+            table-layout: fixed;
+            border-radius: 25px;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ddd;
+            border-radius: 25px;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: center;
+            vertical-align: middle;
+            /* Ensuring text is vertically centered */
+        }
+
+        th {
+            background-color: #333;
+            color: white;
+        }
+
+        .region-header {
+            background-color: #444;
+            color: white;
+            font-weight: bold;
+            text-align: left;
+            padding-left: 15px;
+        }
+
+        .queue-row {
+            text-align: center;
+        }
+
+        .group {
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        h2{
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>GeForceNow Queue</h1>
+    </header>
+
+    <div id="status" class="loading">
+        Loading data...
+    </div>
+
+    <div id="server-queue"></div>
+
+    <script>
+        const apiUrl = 'https://api.printedwaste.com/gfn/queue';
+
+        const regions = {
+            US: [
+                { name: 'US Northwest', code: 'NP-PDX-02' },
+                { name: 'US Midwest', code: 'NP-CHI-03' },
+                { name: 'US Mountain', code: 'NP-SJC6-02' },
+                { name: 'US West', code: 'NP-SJC6-02' },
+                { name: 'US South', code: 'NP-ATL-02' },
+                { name: 'US Southwest', code: 'NP-LAX-02' },
+                { name: 'US Northeast', code: 'NP-NWK-02' },
+                { name: 'US East', code: 'NP-ASH-03' },
+                { name: 'US Central', code: 'NP-DAL-02' },
+                { name: 'US Southeast', code: 'NP-MIA-02' }
+            ],
+            EU: [
+                { name: 'EU Southwest', code: 'NP-PAR-02' },
+                { name: 'EU Central', code: 'NP-FRK-04' },
+                { name: 'EU Northwest', code: 'NP-STH-02' },
+                { name: 'EU West', code: 'NP-LON-03' },
+                { name: 'EU Southeast', code: 'NP-SOF-01' },
+                { name: 'EU Northeast', code: 'NP-AMS-02' },
+                { name: 'EU East', code: 'NP-WAW-01' }
+            ],
+            JP_CA: [
+                { name: 'JP East', code: 'NP-TYO-01' },
+                { name: 'CA East', code: 'NP-MON-01' }
+            ]
+        };
+
+        const groupData = { US: [], EU: [], JP_CA: [] };
+
+        function fetchQueueData() {
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    // Clear previous group data
+                    Object.keys(groupData).forEach(key => groupData[key] = []);
+
+                    // Populate groupData with the latest data
+                    Object.keys(data).forEach(serverCode => {
+                        const server = data[serverCode];
+                        if (server.QueuePosition !== undefined) {
+                            if (regions.US.some(region => region.code === serverCode)) {
+                                groupData.US.push({ name: getRegionName(serverCode, 'US'), queue: server.QueuePosition });
+                            } else if (regions.EU.some(region => region.code === serverCode)) {
+                                groupData.EU.push({ name: getRegionName(serverCode, 'EU'), queue: server.QueuePosition });
+                            } else if (regions.JP_CA.some(region => region.code === serverCode)) {
+                                groupData.JP_CA.push({ name: getRegionName(serverCode, 'JP_CA'), queue: server.QueuePosition });
+                            }
+                        }
+                    });
+
+                    updateHTML();
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        function getRegionName(serverCode, regionType) {
+            const region = regions[regionType].find(region => region.code === serverCode);
+            return region ? region.name : serverCode;
+        }
+
+        function updateHTML() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.style.display = 'none';
+
+            const serverQueueDiv = document.getElementById('server-queue');
+            serverQueueDiv.innerHTML = '';
+
+            // Loop through each group (US, EU, JP_CA) to generate tables
+            Object.keys(groupData).forEach(group => {
+                if (groupData[group].length > 0) {
+                    const groupDiv = document.createElement('div');
+                    groupDiv.classList.add('group');
+
+                    const groupTitle = document.createElement('h2');
+                    groupTitle.textContent = group === 'US' ? 'US Servers' : group === 'EU' ? 'EU Servers' : 'JP/CA Servers' ;
+                    groupDiv.appendChild(groupTitle);
+
+                    const table = document.createElement('table');
+                    const tableHeader = document.createElement('thead');
+                    const headerRow = document.createElement('tr');
+                    headerRow.innerHTML = '<th>Server</th><th>Queue Position</th>';
+                    tableHeader.appendChild(headerRow);
+                    table.appendChild(tableHeader);
+
+                    const tableBody = document.createElement('tbody');
+                    groupData[group].forEach(server => {
+                        const row = document.createElement('tr');
+                        row.classList.add('queue-row');
+                        row.innerHTML = `<td>${server.name}</td><td>${server.queue}</td>`;
+                        tableBody.appendChild(row);
+                    });
+
+                    table.appendChild(tableBody);
+                    groupDiv.appendChild(table);
+                    serverQueueDiv.appendChild(groupDiv);
+                }
+            });
+        }
+
+        // Fetch the data on load and every 10 seconds
+        fetchQueueData();
+        setInterval(fetchQueueData, 10000);
+    </script>
+
+</body>
+
+</html>
