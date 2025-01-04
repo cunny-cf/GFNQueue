@@ -1,0 +1,16 @@
+{
+    "name": "GFN Queue",
+    "short_name": "GFN Q",
+    "description": "Retries Queue informataion from https://printedwaste.com/gfn",
+    "start_url": "index.html",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#101010",
+    "icons": [
+      {
+        "src": "GFN_logo1024_v2.png",
+        "sizes": "1024x1024",
+        "type": "image/png"
+      }
+    ]
+  }
